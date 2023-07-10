@@ -1,24 +1,21 @@
-import logo from './logo.svg';
 import './App.css';
+import { useCallback, useEffect, useState } from 'react';
+import { HashRouter as Router, Routes, Route} from 'react-router-dom';
+import Home from './Home';
+import OBS from "./OBS"
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <div className="App">
+        <div className="content">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/obs" element={<OBS />} />
+          </Routes>
+        </div>
+      </div>
+    </Router>
   );
 }
 
