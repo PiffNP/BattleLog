@@ -12,7 +12,7 @@ const headers = {
 const OBS = () => {
  
 
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams, ] = useSearchParams();
 
     const [inited, setInited] = useState(false);
     const [steamID, setSteamID] = useState('');
@@ -26,7 +26,6 @@ const OBS = () => {
 
     const [lastTime, setLastTime] = useState(0);
     const [time, setTime] = useState(Date.now());
-    const [success, setSuccess] = useState(false);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -58,7 +57,6 @@ const OBS = () => {
                     heros[k] = v['language']['displayName'];
                 }
                 setHeroInfo(heros);
-                setSuccess(true);
             } catch (error) {
                 setTimeout(() => {
                     fetchHeroInfo();
@@ -66,7 +64,7 @@ const OBS = () => {
             }
         }
         fetchHeroInfo();
-        console.log("success");
+        //console.log("success");
 
         setInited(true);
     }, []);
@@ -95,7 +93,7 @@ const OBS = () => {
                     setInfo(data);
 
                     let matches = [];
-                    for (let [_, v] of Object.entries(info)){
+                    for (let [, v] of Object.entries(info)){
                         matches.push({
                             "hero_id" : v['players'][0]['heroId'],
                             "result" : (v['didRadiantWin'] === (v['players'][0]['playerSlot'] < 128))
@@ -103,7 +101,7 @@ const OBS = () => {
                     }
 
                     let temp = []
-                    for (let [_, m] of Object.entries(matches)){
+                    for (let [, m] of Object.entries(matches)){
                         //console.log(m);
                         temp.push(heroInfo[m['hero_id']] + ' '
                             + (m.result ? 'W' : 'L'));

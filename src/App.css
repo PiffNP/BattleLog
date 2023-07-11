@@ -1,3 +1,7 @@
+html, body, .App, .home{
+	height: 100vh;
+}
+
 .App {
   text-align: center;
 }
@@ -11,8 +15,10 @@
 .create label{
   text-align: left;
   display: block;
+  font-size: var(--spectrum-global-dimension-font-size-100);
 }
 
+/*
 .create wrapper{
   display: flex;
   justify-content: space-between;
@@ -25,8 +31,9 @@
   border: 1px solid #ddd;
   box-sizing: border-box;
   display: inline;
-}
+}*/
 
+/*
 .create input{
   width: 100%;
   padding: 6px 10px;
@@ -35,18 +42,24 @@
   box-sizing: border-box;
   display: block;
 }
+*/
+
+/*
 .create button{
-  background: #212121;
+  background: #000000;
   color: #fff;
   border: 0;
   padding: 8px;
   border-radius: 8px;
   cursor: pointer;
 }
+
+
 .create p{
   text-align: center;
   color:#666;
 }
+*/
 
 .obs {
   max-width: 200px;
