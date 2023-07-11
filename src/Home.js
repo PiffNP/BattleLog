@@ -1,25 +1,42 @@
 import './App.css';
-import { useRef, useState, useMemo } from 'react';
-import { defaultTheme, Provider } from '@adobe/react-spectrum';
-import { TextField, ActionButton, Button, Form, Picker, Item, TimeField } from '@adobe/react-spectrum';
-import { Flex } from '@adobe/react-spectrum';
+import { useRef, useState, useMemo, useEffect } from 'react';
+import { defaultTheme, Provider, Flex } from '@adobe/react-spectrum';
+import { TextField, ActionButton, Button, ComboBox, Form, Picker, Item, TimeField } from '@adobe/react-spectrum';
 import { Time } from '@internationalized/date';
-
+import { useCookies } from 'react-cookie';
+import { useFilter } from 'react-aria';
+import { useListData } from 'react-stately'
 
 import Copy from '@spectrum-icons/workflow/Copy'
+import Edit from '@spectrum-icons/workflow/Edit'
 
 const Home = () => {
     const [steamID, setSteamID] = useState('');
+    const [savedAccKey, setSavedAccKey] = useState(null);
+    const [alias, setAlias] = useState('');
     const [title, setTitle] = useState('今日战绩');
     const [startDate, setStartDate] = useState('today');
     const [startTime, setStartTime] = useState(new Time('18', '00'));
     const [textColor, setTextColor] = useState('#ffffff');
     const [targetUrl, setTargetUrl] = useState("");
 
+    const [cookies, setCookie] = useCookies(['SavedAccount']);
+    const [cookieFlag, setCookieFlag] = useState(false);
     let isSteamIDValid = useMemo(
         () => /^\d+$/.test(steamID),
         [steamID]
     );
+    const savedAccList = useListData({
+        initialItems: cookies.SavedAccount || [],
+        initialSelectedKeys:  [''],
+        getKey: item => item.id
+      });
+    const [showAll, setShowAll] = useState(false);
+    let { startsWith } = useFilter({ sensitivity: 'base' });
+    let filteredItems = useMemo(
+        () => savedAccList.items.filter((item) => startsWith(item.id, steamID)),
+        [savedAccList, steamID]
+      );
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const urlRef = useRef();
@@ -46,6 +63,22 @@ const Home = () => {
             + 'startTime=' + t + '&'
             + 'textColor=' + encodeURIComponent(textColor)
         );
+
+        console.log(savedAccList.items);
+        console.log(steamID);
+        //Check whether the current SteamID has been added to the list before
+        if (savedAccList.getItem(steamID)){
+            savedAccList.update(steamID, {id: steamID, alias: alias})
+            console.log("update")
+        } else {
+            savedAccList.append({id: steamID, alias: alias});
+            console.log("append")
+        }
+        console.log(savedAccList.getItem(steamID));
+        console.log(savedAccList.items);
+        setCookieFlag(false);
+        //setCookie('SavedAccount', savedAccList.items)
+        console.log('link: ' + steamID);
     }
 
     const copyLink = (e) => {
@@ -54,25 +87,79 @@ const Home = () => {
         navigator.clipboard.writeText(targetUrl);
     }
 
+    const deleteSavedAcc = (e) => {
+
+    }
+
+    useEffect(() => {
+        setCookie('SavedAccount', savedAccList.items);
+        setCookieFlag(true);
+    }, [cookieFlag]);
+
     return (
         <Provider theme={defaultTheme}>
             <div className="home">
                 <div className="create">
-                    <Flex direction="column" width="size-3000" gap="size-100">
+                    <Flex direction="column" width="size-4600" gap="size-100">
                         <Form
                             labelPosition="top"
                             labelAlign="start"
                             onSubmit={handleSubmit}>
                             
-                            <TextField 
+                            <ComboBox
+                                onOpenChange={(isOpen, menuTrigger) => {
+                                    if (menuTrigger === 'manual' && isOpen) {
+                                        setShowAll(true);
+                                    }
+                                }}
                                 label="Steam ID"
-                                value={steamID}
-                                onChange={setSteamID}
+                                items={showAll ? savedAccList.items : filteredItems}
+                                selectedKey={savedAccKey}
+                                inputValue={steamID}
+                                onInputChange={(value) => {
+                                    setShowAll(false);
+                                    setSteamID(value);
+                                    //setSavedAccKey((prevKey) => 
+                                    //    (value === '' ? null : prevKey)
+                                    //)
+                                    setSavedAccKey(null); 
+                                }}
+                                onSelectionChange = {(key) => {
+                                    if(key != null){
+                                        setSteamID(savedAccList.getItem(key)?.id ?? '');
+                                    }
+                                    setSavedAccKey(key);
+                                    console.log(savedAccKey + ' ' + steamID)
+                                }}
                                 validationState={isSubmitting ? (isSteamIDValid ? 'valid' : 'invalid') : null}
                                 errorMessage={steamID === ''
                                     ? 'Steam ID 不能为空'
                                     : 'Steam ID 为纯数字'}
-                                isRequired/>
+                                isRequired
+                                allowsCustomValue
+                            >
+                                {(item) => <Item key={item.id} textValue={item.id}>
+                                    {item.id + (item.alias === '' ? ' ' : ' (' + item.alias + ')')}
+                                </Item>}
+                            </ComboBox>
+
+                            <Flex
+                                direction="row"
+                                gap="size-100"
+                                justifyContent="space-between"
+                                alignItems="end">
+                                <TextField
+                                    width='90%'
+                                    label="账号备注"
+                                    value={alias}
+                                    onChange={setAlias}
+                                />
+
+                                <ActionButton onPress={deleteSavedAcc} aria-label="Delete Saved Account">
+                                    <Edit />
+                                </ActionButton>
+                            </Flex>
+                            
 
                             <TextField 
                                 label="标题"
@@ -96,7 +183,7 @@ const Home = () => {
                                     <Item key="yesterday">昨天</Item>
                                 </Picker>
                                 <TimeField
-                                    width="20%"                                  
+                                    width="40%"                                  
                                     value={startTime}
                                     onChange={setStartTime}
                                     isRequired/>
