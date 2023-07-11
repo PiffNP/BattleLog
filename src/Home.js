@@ -2,6 +2,7 @@ import './App.css';
 import { useRef, useState, useMemo, useEffect } from 'react';
 import { defaultTheme, Provider, Flex } from '@adobe/react-spectrum';
 import { TextField, ActionButton, Button, ComboBox, Form, Picker, Item, TimeField } from '@adobe/react-spectrum';
+import { ActionGroup, Text, Tooltip, TooltipTrigger } from '@adobe/react-spectrum'
 import { Time } from '@internationalized/date';
 import { useCookies } from 'react-cookie';
 import { useFilter } from 'react-aria';
@@ -9,6 +10,8 @@ import { useListData } from 'react-stately'
 
 import Copy from '@spectrum-icons/workflow/Copy'
 import Edit from '@spectrum-icons/workflow/Edit'
+import Delete from '@spectrum-icons/workflow/Delete'
+
 
 const Home = () => {
     const [steamID, setSteamID] = useState('');
@@ -64,31 +67,12 @@ const Home = () => {
             + 'textColor=' + encodeURIComponent(textColor)
         );
 
-        console.log(savedAccList.items);
-        console.log(steamID);
-        //Check whether the current SteamID has been added to the list before
-        if (savedAccList.getItem(steamID)){
-            savedAccList.update(steamID, {id: steamID, alias: alias})
-            console.log("update")
-        } else {
-            savedAccList.append({id: steamID, alias: alias});
-            console.log("append")
-        }
-        console.log(savedAccList.getItem(steamID));
-        console.log(savedAccList.items);
-        setCookieFlag(false);
-        //setCookie('SavedAccount', savedAccList.items)
-        console.log('link: ' + steamID);
     }
 
     const copyLink = (e) => {
         urlRef.current.focus();
         urlRef.current.select();
         navigator.clipboard.writeText(targetUrl);
-    }
-
-    const deleteSavedAcc = (e) => {
-
     }
 
     useEffect(() => {
@@ -126,10 +110,12 @@ const Home = () => {
                                 }}
                                 onSelectionChange = {(key) => {
                                     if(key != null){
-                                        setSteamID(savedAccList.getItem(key)?.id ?? '');
+                                        let v = savedAccList.getItem(key);
+                                        setSteamID(v?.id ?? '');
+                                        setAlias(v?.alias ?? '');
                                     }
                                     setSavedAccKey(key);
-                                    console.log(savedAccKey + ' ' + steamID)
+                                    //console.log(savedAccKey + ' ' + steamID)
                                 }}
                                 validationState={isSubmitting ? (isSteamIDValid ? 'valid' : 'invalid') : null}
                                 errorMessage={steamID === ''
@@ -149,15 +135,46 @@ const Home = () => {
                                 justifyContent="space-between"
                                 alignItems="end">
                                 <TextField
-                                    width='90%'
+                                    width='80%'
                                     label="账号备注"
                                     value={alias}
                                     onChange={setAlias}
                                 />
 
-                                <ActionButton onPress={deleteSavedAcc} aria-label="Delete Saved Account">
-                                    <Edit />
-                                </ActionButton>
+                                <ActionGroup
+                                    overflowMode="collapse"
+                                    buttonLabelBehavior="hide"
+                                    onAction={(btn_key) => {
+                                        setIsSubmitting(true);
+                                        if(!isSteamIDValid)
+                                            return;
+                                        if (btn_key === 'edit') {
+                                            //Check whether the current SteamID has been added to the list before
+                                            if (savedAccList.getItem(steamID)) {
+                                                savedAccList.update(steamID, { id: steamID, alias: alias })
+                                                //console.log("update");
+                                            } else {
+                                                savedAccList.append({ id: steamID, alias: alias });
+                                                //console.log("append");
+                                            }
+                                        } else if (btn_key === 'del'){
+                                            if (savedAccList.getItem(steamID)) {
+                                                savedAccList.remove(steamID);
+                                                //console.log("del");
+                                            }
+                                        }
+                                        setCookieFlag(false);
+                                    }}
+                                >
+                                    <Item key="edit">
+                                        <Edit />
+                                        <Text>添加/编辑账号记录</Text>
+                                    </Item>
+                                    <Item key="del">
+                                        <Delete />
+                                        <Text>删除账号记录</Text>
+                                    </Item>
+                                </ActionGroup>
                             </Flex>
                             
 
@@ -219,9 +236,12 @@ const Home = () => {
                                 value={targetUrl}
                                 isReadOnly
                                 ref={urlRef} />
-                            <ActionButton onPress={copyLink} aria-label="Copy link">
-                                <Copy />
-                            </ActionButton>
+                            <TooltipTrigger>
+                                <ActionButton onPress={copyLink} aria-label="Copy link">
+                                    <Copy />
+                                </ActionButton>
+                                <Tooltip>拷贝到剪贴板</Tooltip>
+                            </TooltipTrigger>
                         </Flex>
                     </Flex>
                 </div>
