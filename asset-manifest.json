@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/BattleLog/static/css/main.2c332712.css",
-    "main.js": "/BattleLog/static/js/main.cbd9a2ab.js",
+    "main.js": "/BattleLog/static/js/main.b0c8ca8d.js",
     "static/js/787.28cb0dcd.chunk.js": "/BattleLog/static/js/787.28cb0dcd.chunk.js",
     "index.html": "/BattleLog/index.html",
     "main.2c332712.css.map": "/BattleLog/static/css/main.2c332712.css.map",
-    "main.cbd9a2ab.js.map": "/BattleLog/static/js/main.cbd9a2ab.js.map",
+    "main.b0c8ca8d.js.map": "/BattleLog/static/js/main.b0c8ca8d.js.map",
     "787.28cb0dcd.chunk.js.map": "/BattleLog/static/js/787.28cb0dcd.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.2c332712.css",
-    "static/js/main.cbd9a2ab.js"
+    "static/js/main.b0c8ca8d.js"
   ]
 }
