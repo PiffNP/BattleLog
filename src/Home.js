@@ -76,7 +76,7 @@ const Home = () => {
     }
 
     useEffect(() => {
-        setCookie('SavedAccount', savedAccList.items);
+        setCookie('SavedAccount', savedAccList.items, {maxAge: 31536000});
         setCookieFlag(true);
     }, [cookieFlag]);
 
