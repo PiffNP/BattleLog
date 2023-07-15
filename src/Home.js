@@ -23,6 +23,8 @@ const Home = () => {
     const [textColor, setTextColor] = useState('#ffffff');
     const [targetUrl, setTargetUrl] = useState("");
 
+    const [lastLink, setLastLink] = useState("");
+
     const [cookies, setCookie] = useCookies(['SavedAccount']);
     const [cookieFlag, setCookieFlag] = useState(false);
     let isSteamIDValid = useMemo(
@@ -60,13 +62,32 @@ const Home = () => {
         let t = parseInt(d.getTime() / 1000);
         t = t + (startDate === 'today' ? 0: -1) * 60 * 60 * 24;
 
+        let lastLinkField = '';
+
+        if (lastLink !== '') {
+            let tmp = Object.assign({}, ...lastLink.split('?')[1].split('&').map((x) => {
+                let _ = x.split("=");
+                return ({ [_[0]]: _[1] });
+            }));
+            if ("lastLink" in tmp) {
+                lastLinkField = decodeURIComponent(tmp['lastLink']) + '#';
+            }
+            lastLinkField = lastLinkField +
+                + tmp.steamID + '+'
+                + tmp.startTime + '+'
+                + parseInt(Date.now() / 1000);
+            //console.log(lastLinkField);
+            lastLinkField = encodeURIComponent(lastLinkField);
+        }
+ 
         setTargetUrl('https://piffnp.github.io/BattleLog/#/obs?'
             + 'steamID=' + steamID + '&'
             + 'title=' + encodeURIComponent(title) + '&'
             + 'startTime=' + t + '&'
             + 'textColor=' + encodeURIComponent(textColor)
+            + (lastLinkField !== '' ? '&lastLink=' + lastLinkField : '')
         );
-
+        //console.log(targetUrl);
     }
 
     const copyLink = (e) => {
@@ -205,6 +226,12 @@ const Home = () => {
                                     onChange={setStartTime}
                                     isRequired/>
                             </Flex>
+
+                            <TextField 
+                                label="多段索引链接"
+                                value={lastLink}
+                                onChange={setLastLink}
+                                />
 
                             <label>字体颜色</label>
 

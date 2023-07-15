@@ -10,8 +10,6 @@ const headers = {
 }
 
 const OBS = () => {
- 
-
     const [searchParams, ] = useSearchParams();
 
     const [inited, setInited] = useState(false);
@@ -21,11 +19,14 @@ const OBS = () => {
     const [textColor, setTextColor] = useState(null);
 
     const [info, setInfo] = useState([]);
-    const [heroInfo, setHeroInfo] = useState({});
+    const [heroInfo, setHeroInfo] = useState(null);
     const [battleLog, setBattleLog] = useState([]);
 
     const [lastTime, setLastTime] = useState(0);
     const [time, setTime] = useState(Date.now());
+
+    const [lastLink, setLastLink] = useState(null);
+    const [concatBattleLog, setConcatBattleLog] = useState([]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -41,10 +42,10 @@ const OBS = () => {
         setTitle(decodeURIComponent(searchParams.get("title")));
         setTextColor(decodeURIComponent(searchParams.get("textColor")));
         setStartTime(searchParams.get("startTime"));
+        setLastLink(searchParams.get("lastLink"));
 
         //load hero info
         //*
-
         async function fetchHeroInfo() {
             try {
                 const res = await fetch(Hero_API_URI, {headers});
@@ -57,17 +58,73 @@ const OBS = () => {
                     heros[k] = v['language']['displayName'];
                 }
                 setHeroInfo(heros);
+                setInited(true);
             } catch (error) {
                 setTimeout(() => {
                     fetchHeroInfo();
-                }, 5000)
+                }, 5000);
             }
         }
-        fetchHeroInfo();
-        //console.log("success");
-
-        setInited(true);
+        fetchHeroInfo();                
+        
     }, []);
+
+    useEffect(() => {
+        async function fetchMatchInfo(match_uri) {
+            try {
+                console.log("try " + match_uri);
+                const res = await fetch(match_uri, {headers});
+                if (!res.ok){
+                    throw Error('could not fetch the data for that resource');
+                }
+                const data = await res.json();
+
+                let matches = [];
+                for (let [, v] of Object.entries(data)) {
+                    matches.push({
+                        "hero_id": v['players'][0]['heroId'],
+                        "result": (v['didRadiantWin'] === (v['players'][0]['playerSlot'] < 128))
+                    })
+                }
+
+                let temp = [];
+                for (let [, m] of Object.entries(matches)) {
+                    temp.push(heroInfo[m['hero_id']] + ' '
+                        + (m.result ? 'W' : 'L'));
+                }
+                return temp.reverse();
+            } catch (error) {
+                setTimeout(() => {
+                    fetchMatchInfo(match_uri);
+                }, 5000);
+            }
+        }
+
+        async function handleConcatData(){
+            let concatTmp = [];
+            let link = decodeURIComponent(lastLink);
+            let w = link.split('#').map((x) => {
+                let _ = x.split("+");
+                return ({ id: _[0], startTime: _[1], endTime: _[2] });
+            });
+            for (let x of w){
+                let _uri = Match_API_URI.replace('steamID', x.id)
+                + '?startDateTime=' + x.startTime
+                + '&endDateTime=' + x.endTime
+                + '&take=20';
+
+                //console.log(_uri);
+                let tmp = await fetchMatchInfo(_uri);
+                concatTmp = concatTmp.concat(tmp);
+                //console.log(concatTmp);
+            }
+            setConcatBattleLog(concatTmp);
+        }
+
+        if (lastLink != null){
+            handleConcatData();
+        }
+    }, [inited]);
 
     useEffect(() => {
         if(inited && time - lastTime > 30000){
@@ -115,6 +172,9 @@ const OBS = () => {
     return (
         <div className="obs">
             <label style={{fontSize: 40, color: textColor}}>{title}</label>
+            {concatBattleLog.map(m => (
+                <label style={{color: textColor}}>{m}</label>
+            ))}
             {battleLog.map(m => (
                 <label style={{color: textColor}}>{m}</label>
             ))}
