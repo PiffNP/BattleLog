@@ -24,6 +24,7 @@ const Home = () => {
     const [targetUrl, setTargetUrl] = useState("");
 
     const [lastLink, setLastLink] = useState("");
+    const [dataSource, setDataSource] = useState("OpenDota");
 
     const [cookies, setCookie] = useCookies(['SavedAccount']);
     const [cookieFlag, setCookieFlag] = useState(false);
@@ -81,10 +82,11 @@ const Home = () => {
         }
  
         setTargetUrl('https://piffnp.github.io/BattleLog/#/obs?'
-            + 'steamID=' + steamID + '&'
-            + 'title=' + encodeURIComponent(title) + '&'
-            + 'startTime=' + t + '&'
-            + 'textColor=' + encodeURIComponent(textColor)
+            + 'steamID=' + steamID
+            + '&title=' + encodeURIComponent(title)
+            + '&startTime=' + t
+            + '&textColor=' + encodeURIComponent(textColor)
+            + '&dataSource=' + dataSource
             + (lastLinkField !== '' ? '&lastLink=' + lastLinkField : '')
         );
         //console.log(targetUrl);
@@ -225,6 +227,23 @@ const Home = () => {
                                     value={startTime}
                                     onChange={setStartTime}
                                     isRequired/>
+                            </Flex>
+
+                            <label>数据源</label>
+                            
+                            <Flex 
+                                direction="row"
+                                gap="size-100"
+                                justifyContent="space-between">
+                                
+                                <Picker
+                                    width="100%"
+                                    selectedKey={dataSource}
+                                    onSelectionChange={(selected) => setDataSource(selected)}
+                                    isRequired>
+                                    <Item key="Stratz">Stratz</Item>
+                                    <Item key="OpenDota">OpenDota</Item>
+                                </Picker>
                             </Flex>
 
                             <TextField 
