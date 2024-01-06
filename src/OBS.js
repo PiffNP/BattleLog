@@ -50,7 +50,7 @@ const OBS = () => {
         setLastLink(searchParams.get("lastLink"));
         setDataSource(searchParams.get("dataSource"));
 
-        //load hero info
+        //load hero info from Stratz
         //*
         async function fetchHeroInfo() {
             try {
@@ -85,12 +85,20 @@ const OBS = () => {
     }, []);
 
     function formatLog(matches) {
+        //console.log(matches);
+        matches.sort((a,b) => {
+            return a['match_id'] - b['match_id'];
+        });
         let temp = [];
+        let last_match_id = -1;
         for (let [, m] of Object.entries(matches)) {
-            temp.push(heroInfo[m['hero_id']] + ' '
-                + (m.result ? 'W' : 'L'));
+            if (m['match_id'] != last_match_id){
+                last_match_id = m['match_id'];
+                temp.push(heroInfo[m['hero_id']] + ' '
+                    + (m.result ? 'W' : 'L'));
+            }
         }
-        return temp.reverse();
+        return temp;
     }
 
     //Stratz
@@ -106,19 +114,20 @@ const OBS = () => {
             let matches = [];
             for (let [, v] of Object.entries(data)) {
                 matches.push({
+                    "match_id": v['id'],
                     "hero_id": v['players'][0]['heroId'],
                     "result": (v['didRadiantWin'] === (v['players'][0]['playerSlot'] < 128))
                 })
             }
 
-            return formatLog(matches);
+            return matches;
         } catch (error) {
             if (retry) {
                 setTimeout(() => {
                     fetchMatchInfo(match_uri, true);
                 }, 5000);
             } else {
-                return null;
+                return [];
             }
         }
     }
@@ -138,19 +147,20 @@ const OBS = () => {
                 if (v['start_time'] < startTime || (endTime != null && v['start_time'] > endTime))
                     continue;
                 matches.push({
+                    "match_id": v['match_id'],
                     "hero_id": v['hero_id'],
                     "result": (v['radiant_win'] === (v['player_slot'] < 128))
                 })
             }
 
-            return formatLog(matches);
+            return matches;
         } catch (error) {
             if (retry) {
                 setTimeout(() => {
                     fetchMatchInfo_v2(match_uri, startTime, endTime, true);
                 }, 5000);
             } else {
-                return null;
+                return [];
             }
         }
     }
@@ -164,7 +174,7 @@ const OBS = () => {
                 return ({ id: _[0], startTime: _[1], endTime: _[2] });
             });
             for (let x of w) {
-                if (dataSource == null || dataSource == 'Stratz') {
+                if (dataSource == 'Stratz') {
                     let _uri = Match_API_URI.replace('steamID', x.id)
                         + '?startDateTime=' + x.startTime
                         + '&endDateTime=' + x.endTime
@@ -176,8 +186,20 @@ const OBS = () => {
                         + '?limit=20';
                     let tmp = await fetchMatchInfo_v2(_uri, x.startTime, x.endTime, true);
                     concatTmp = concatTmp.concat(tmp);
+                } else if (dataSource == 'Mix' || dataSource == null){
+                    let _uri = Match_API_URI.replace('steamID', x.id)
+                        + '?startDateTime=' + x.startTime
+                        + '&endDateTime=' + x.endTime
+                        + '&take=20';
+                    let tmp = await fetchMatchInfo(_uri, true);
+                    concatTmp = concatTmp.concat(tmp);
+                    let _uri2 = Match_API_URI_v2.replace('steamID', x.id)
+                        + '?limit=20';
+                    let tmp2 = await fetchMatchInfo_v2(_uri2, x.startTime, x.endTime, true);
+                    concatTmp = concatTmp.concat(tmp2);
                 }
             }
+            concatTmp = formatLog(concatTmp);
             setConcatBattleLog(concatTmp);
         }
 
@@ -195,20 +217,32 @@ const OBS = () => {
             //console.log(heroInfo);
 
             async function handleData() {
-                let tmp = null;
-                if (dataSource == null || dataSource == 'Stratz') {
+                let ret = null;
+                if (dataSource == 'Stratz') {
                     const uri = Match_API_URI.replace('steamID', steamID)
                         + '?startDateTime=' + startTime
                         + '&take=20';
-                    tmp = await fetchMatchInfo(uri, false);
+                    ret = await fetchMatchInfo(uri, false);
                 } else if (dataSource == 'OpenDota') {
                     const uri = Match_API_URI_v2.replace('steamID', steamID)
                         + '?limit=20';
-                    tmp = await fetchMatchInfo_v2(uri, startTime, null, false);
+                    ret = await fetchMatchInfo_v2(uri, startTime, null, false);
+                } else if (dataSource == 'Null' || dataSource == 'Mix'){
+                    ret = [];
+                    const uri = Match_API_URI.replace('steamID', steamID)
+                        + '?startDateTime=' + startTime
+                        + '&take=20';
+                    let tmp = await fetchMatchInfo(uri, false);
+                    ret = ret.concat(tmp);
+                    const uri2 = Match_API_URI_v2.replace('steamID', steamID)
+                        + '?limit=20';
+                    let tmp2 = await fetchMatchInfo_v2(uri2, startTime, null, false);
+                    ret = ret.concat(tmp2);
                 }
                 
-                if (tmp != null){
-                    setBattleLog(tmp);
+                if (ret != null){
+                    ret = formatLog(ret);
+                    setBattleLog(ret);
                 }
             }
 

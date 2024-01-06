@@ -24,7 +24,7 @@ const Home = () => {
     const [targetUrl, setTargetUrl] = useState("");
 
     const [lastLink, setLastLink] = useState("");
-    const [dataSource, setDataSource] = useState("OpenDota");
+    const [dataSource, setDataSource] = useState("Mix");
 
     const [cookies, setCookie] = useCookies(['SavedAccount']);
     const [cookieFlag, setCookieFlag] = useState(false);
@@ -243,6 +243,7 @@ const Home = () => {
                                     isRequired>
                                     <Item key="Stratz">Stratz</Item>
                                     <Item key="OpenDota">OpenDota</Item>
+                                    <Item key="Mix">Mix</Item>
                                 </Picker>
                             </Flex>
 
