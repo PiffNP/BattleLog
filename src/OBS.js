@@ -1,9 +1,25 @@
 import './App.css';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { gql, GraphQLClient, request} from 'graphql-request'
+
+const stratz_endpoint = 'https://api.stratz.com/graphql'
+const stratz_header = {
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTdWJqZWN0IjoiMjUxY2U4Y2QtYTAxNS00Y2EyLTlkMDctOWU5MzM1Mjk3ODhhIiwiU3RlYW1JZCI6IjI5OTQ1MDUwNCIsIm5iZiI6MTcyMDc4NTExMCwiZXhwIjoxNzUyMzIxMTEwLCJpYXQiOjE3MjA3ODUxMTAsImlzcyI6Imh0dHBzOi8vYXBpLnN0cmF0ei5jb20ifQ.3tQ6ek4lW7U5CPcyWKtHF6ZYmQXbOnd_bVpJ60wUhbI',
+}
+const hero_query = `{constants{heroes(language: S_CHINESE){id language {displayName}}}}`
+const match_query = `{player(steamAccountId: STEAM_ID) {matches(request: {REQ_PARAM}) {
+        players(steamAccountId: STEAM_ID) {
+          matchId
+          heroId
+          isVictory
+        }
+      }
+    }
+}`
 
 const Match_API_URI = 'https://api.stratz.com/api/v1/Player/steamID/matches'
-const Hero_API_URI = 'https://api.stratz.com/api/v1/Hero?languageId=20'
+//const Hero_API_URI = 'https://api.stratz.com/api/v1/Hero?languageId=20'
 const headers = {
     'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiJodHRwczovL3N0ZWFtY29tbXVuaXR5LmNvbS9vcGVuaWQvaWQvNzY1NjExOTgyNTk3MTYyMzIiLCJ1bmlxdWVfbmFtZSI6IkNvbnZvbHV0aW9uIiwiU3ViamVjdCI6IjI1MWNlOGNkLWEwMTUtNGNhMi05ZDA3LTllOTMzNTI5Nzg4YSIsIlN0ZWFtSWQiOiIyOTk0NTA1MDQiLCJuYmYiOjE2ODg0NjA1MzIsImV4cCI6MTcxOTk5NjUzMiwiaWF0IjoxNjg4NDYwNTMyLCJpc3MiOiJodHRwczovL2FwaS5zdHJhdHouY29tIn0.KuIL5MM9-WcbWAOGdLpD7EEFRNmI4kFNFbA0ysDanxY',
     accept: 'application/json'
@@ -54,23 +70,16 @@ const OBS = () => {
         //*
         async function fetchHeroInfo() {
             try {
-                //console.log("start");
-                const res = await fetch(Hero_API_URI, { headers });
-                if (!res.ok) {
-                    throw Error('could not fetch the data for that resource');
-                }
-                const data = await res.json();
-                let heros = {};
+                const res = await request(stratz_endpoint, hero_query, null, stratz_header);
+                //console.log(res);
+                const data = res["constants"]["heroes"];
                 //console.log(data);
-                for (let [k, v] of Object.entries(data)) {
-                    if (k == 0 || k == 127)
-                        continue;
-                    else {
-                        //console.log(v);
-                        heros[v['language']['heroId']] = v['language']['displayName'];
-                    }
+                let heroes = {};
+                for (let i = 0; i < data.length; i++) {
+                    heroes[data[i].id] = data[i].language.displayName;
                 }
-                setHeroInfo(heros);
+                //console.log(heroes)
+                setHeroInfo(heroes);
                 setInited(true);
                 //console.log("inited");
             } catch (error) {
@@ -105,21 +114,20 @@ const OBS = () => {
     async function fetchMatchInfo(match_uri, retry) {
         try {
             //console.log("try " + match_uri);
-            const res = await fetch(match_uri, { headers });
-            if (!res.ok) {
-                throw Error('could not fetch the data for that resource');
-            }
-            const data = await res.json();
-            
+            //const res = await fetch(match_uri, { headers });
+            const res = await request(stratz_endpoint, match_uri, null, stratz_header);
+            const data = res.player.matches;
+            //console.log(data);
             let matches = [];
-            for (let [, v] of Object.entries(data)) {
+            for (let i = 0; i < data.length; i++) {
+                let v = data[i].players[0];
                 matches.push({
-                    "match_id": v['id'],
-                    "hero_id": v['players'][0]['heroId'],
-                    "result": (v['didRadiantWin'] === (v['players'][0]['playerSlot'] < 128))
+                    "match_id": v.matchId,
+                    "hero_id": v.heroId,
+                    "result": v.isVictory
                 })
             }
-
+            //console.log(matches);
             return matches;
         } catch (error) {
             if (retry) {
@@ -175,10 +183,8 @@ const OBS = () => {
             });
             for (let x of w) {
                 if (dataSource == 'Stratz') {
-                    let _uri = Match_API_URI.replace('steamID', x.id)
-                        + '?startDateTime=' + x.startTime
-                        + '&endDateTime=' + x.endTime
-                        + '&take=20';
+                    const _uri = match_query.replaceAll('STEAM_ID', x.id)
+                        .replace('REQ_PARAM', `take:20, startDateTime:${x.startTime}, endDateTime:${x.endTime}`);
                     let tmp = await fetchMatchInfo(_uri, true);
                     concatTmp = concatTmp.concat(tmp);
                 } else if (dataSource == 'OpenDota') {
@@ -187,10 +193,8 @@ const OBS = () => {
                     let tmp = await fetchMatchInfo_v2(_uri, x.startTime, x.endTime, true);
                     concatTmp = concatTmp.concat(tmp);
                 } else if (dataSource == 'Mix' || dataSource == null){
-                    let _uri = Match_API_URI.replace('steamID', x.id)
-                        + '?startDateTime=' + x.startTime
-                        + '&endDateTime=' + x.endTime
-                        + '&take=20';
+                    const _uri = match_query.replaceAll('STEAM_ID', x.id)
+                        .replace('REQ_PARAM', `take:20, startDateTime:${x.startTime}, endDateTime:${x.endTime}`);
                     let tmp = await fetchMatchInfo(_uri, true);
                     concatTmp = concatTmp.concat(tmp);
                     let _uri2 = Match_API_URI_v2.replace('steamID', x.id)
@@ -219,9 +223,7 @@ const OBS = () => {
             async function handleData() {
                 let ret = null;
                 if (dataSource == 'Stratz') {
-                    const uri = Match_API_URI.replace('steamID', steamID)
-                        + '?startDateTime=' + startTime
-                        + '&take=20';
+                    const uri = match_query.replaceAll('STEAM_ID', steamID).replace('REQ_PARAM', `take:20, startDateTime:${startTime}`);
                     ret = await fetchMatchInfo(uri, false);
                 } else if (dataSource == 'OpenDota') {
                     const uri = Match_API_URI_v2.replace('steamID', steamID)
@@ -229,9 +231,7 @@ const OBS = () => {
                     ret = await fetchMatchInfo_v2(uri, startTime, null, false);
                 } else if (dataSource == 'Null' || dataSource == 'Mix'){
                     ret = [];
-                    const uri = Match_API_URI.replace('steamID', steamID)
-                        + '?startDateTime=' + startTime
-                        + '&take=20';
+                    const uri = match_query.replaceAll('STEAM_ID', steamID).replace('REQ_PARAM', `take:20, startDateTime:${startTime}`);
                     let tmp = await fetchMatchInfo(uri, false);
                     ret = ret.concat(tmp);
                     const uri2 = Match_API_URI_v2.replace('steamID', steamID)
