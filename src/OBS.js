@@ -7,7 +7,7 @@ const stratz_endpoint = 'https://api.stratz.com/graphql'
 const stratz_header = {
     'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTdWJqZWN0IjoiMjUxY2U4Y2QtYTAxNS00Y2EyLTlkMDctOWU5MzM1Mjk3ODhhIiwiU3RlYW1JZCI6IjI5OTQ1MDUwNCIsIm5iZiI6MTcyMDc4NTExMCwiZXhwIjoxNzUyMzIxMTEwLCJpYXQiOjE3MjA3ODUxMTAsImlzcyI6Imh0dHBzOi8vYXBpLnN0cmF0ei5jb20ifQ.3tQ6ek4lW7U5CPcyWKtHF6ZYmQXbOnd_bVpJ60wUhbI',
 }
-const hero_query = `{constants{heroes(language: S_CHINESE){id language {displayName}}}}`
+const hero_query = `{constants{heroes(language: S_CHINESE){id displayName language {displayName}}}}`
 const match_query = `{player(steamAccountId: STEAM_ID) {matches(request: {REQ_PARAM}) {
         players(steamAccountId: STEAM_ID) {
           matchId
@@ -76,7 +76,45 @@ const OBS = () => {
                 //console.log(data);
                 let heroes = {};
                 for (let i = 0; i < data.length; i++) {
-                    heroes[data[i].id] = data[i].language.displayName;
+                    if (data[i].language && data[i].language.displayName)
+                        heroes[data[i].id] = data[i].language.displayName;
+                    else if (data[i].displayName){
+                        const shortname = {"Crystal Maiden":"CM",
+                        "Phantom Lancer":"PL",
+                        "Vengeful Spirit":"VS",
+                        "Shadow Shaman":"Shaman",
+                        "Queen of Pain":"QoP",
+                        "Faceless Void":"FV",
+                        "Death Prophet":"DP",
+                        "Phantom Assassin":"PA",
+                        "Templar Assassin":"TA",
+                        "Dragon Knight":"DK",
+                        "Nature's Prophet":"NP",
+                        "Night Stalker":"NS",
+                        "Bounty Hunter":"BH",
+                        "Ancient Apparition":"AA",
+                        "Spirit Breaker":"SB",
+                        "Outworld Destroyer":"OD",
+                        "Treant Protector":"Treant",
+                        "Keeper of the Light":"KotL",
+                        "Troll Warlord":"Troll",
+                        "Centaur Warrunner":"Centaur",
+                        "Skywrath Mage":"Skywrath",
+                        "Legion Commander":"LC",
+                        "Winter Wyvern":"WW"};            
+                        let hero_name = data[i].displayName;
+                        if (hero_name in shortname)
+                            hero_name = shortname[hero_name];
+                        heroes[data[i].id] = hero_name;
+                        //if (data[i].displayName.length > 12)
+                        //    console.log("\"" + data[i].displayName + '(' + hero_name + ')' + '\":\"' + data[i].id +"\",");
+                    }
+                    else{
+                        if(data[i].id == 131)
+                            heroes[data[i].id] = `Ringmaster`;
+                        else
+                            heroes[data[i].id] = `hero_${data[i].id}`;                    
+                    }
                 }
                 //console.log(heroes)
                 setHeroInfo(heroes);
